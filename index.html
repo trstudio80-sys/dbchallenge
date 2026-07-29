@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>타겟DB 챌린지 전국 대시보드</title>
+    <style>
+        /* 전체 폰트 기본 크기 상향 (기존 대비 약 2pt 키움) */
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Malgun Gothic', sans-serif; font-size: 15px; }
+        body { background-color: #f4f6f9; color: #1e293b; line-height: 1.5; }
+        
+        /* 헤더 */
+        header { background-color: #1e3a8a; color: white; padding: 16px 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 10; }
+        .header-container { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+        .logo-area { display: flex; align-items: center; gap: 10px; }
+        .logo-icon { background-color: #2563eb; padding: 8px; border-radius: 8px; font-size: 20px; }
+        
+        /* 버튼 공통 */
+        .btn { background: #2563eb; color: white; border: none; padding: 10px 16px; border-radius: 6px; font-size: 15px; cursor: pointer; font-weight: bold; transition: background 0.2s; }
+        .btn:hover { background: #1d4ed8; }
+        .btn-secondary { background: #64748b; }
+        .btn-secondary:hover { background: #475569; }
+
+        /* 메인 컨테이너 */
+        main { max-width: 1200px; margin: 20px auto; padding: 0 12px; }
+        
+        .box { background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .box-title { font-size: 18px; font-weight: bold; color: #0f172a; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+        .box-desc { font-size: 14px; color: #64748b; margin-bottom: 16px; }
+
+        /* 업데이트 날짜 배너 */
+        .update-banner { background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 14px; border-radius: 8px; font-size: 14px; color: #475569; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
+
+        /* 테이블 스타일 */
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th { background: #f8fafc; color: #475569; padding: 12px 10px; font-size: 13px; text-transform: uppercase; border-bottom: 2px solid #e2e8f0; }
+        td { padding: 12px 10px; border-bottom: 1px solid #f1f5f9; font-size: 15px; }
+        
+        .group-1st { background-color: #ffffff; }
+        .group-2nd { background-color: #fafbfc; }
+        .group-3rd { background-color: #f5f7fa; }
+
+        .text-right { text-align: right; }
+        .no-data { text-align: center; color: #94a3b8; padding: 24px; font-size: 15px; background: #fff !important; }
+
+        /* 레벨 카드 그리드 (가로 2개 배치) */
+        .level-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        @media(min-width: 768px) { .level-grid { grid-template-columns: repeat(3, 1fr); } }
+
+        .level-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; gap: 10px; }
+        .level-badge { display: inline-block; background: #e0e7ff; color: #4f46e5; font-size: 12px; font-weight: bold; padding: 4px 10px; border-radius: 20px; margin-bottom: 4px; }
+        .level-title { font-size: 16px; font-weight: bold; color: #1e293b; }
+        .level-req { font-size: 13px; color: #64748b; margin-bottom: 4px; }
+        .level-prize-box { display: flex; align-items: center; gap: 10px; background: #fff; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0; }
+        .level-img { font-size: 26px; }
+        .level-prize { font-size: 15px; font-weight: bold; color: #d97706; }
+        .level-quota { font-size: 12px; color: #64748b; }
+
+        /* 17개 지역단 카드 그리드 (모바일 가로 3개 배치) */
+        .region-card-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        @media(min-width: 768px) { .region-card-grid { grid-template-columns: repeat(6, 1fr); } }
+
+        .region-card { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: white; border-radius: 8px; padding: 16px 10px; text-align: center; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; border: 1px solid #334155; }
+        .region-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); border-color: #3b82f6; }
+        .region-card-name { font-size: 16px; font-weight: bold; color: #fde047; }
+
+        /* 모달 공통 스타일 */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; padding: 16px; }
+        .modal-content { background: white; padding: 24px; border-radius: 12px; width: 100%; max-width: 520px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-height: 85vh; overflow-y: auto; }
+        .modal-header { font-size: 18px; font-weight: bold; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }
+        .close-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: #64748b; }
+        
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 14px; font-weight: bold; margin-bottom: 6px; color: #475569; }
+        .form-group input[type="password"], .form-group input[type="file"] { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 15px; }
+        
+        .view-section { display: none; }
+        .view-section.active { display: block; }
+        
+        footer { text-align: center; padding: 20px; color: #94a3b8; font-size: 13px; border-top: 1px solid #e2e8f0; margin-top: 24px; }
+    </style>
+</head>
+<body>
+
+    <!-- 상단 헤더 -->
+    <header>
+        <div class="header-container">
+            <div class="logo-area">
+                <div class="logo-icon">🎯</div>
+                <div>
+                    <h1 style="font-size: 18px; font-weight: bold;">타겟DB 챌린지 대시보드</h1>
+                    <p style="font-size: 12px; color: #93c5fd;">영업가족 실시간 뱃지 및 순위 시스템</p>
+                </div>
+            </div>
+            <div>
+                <button class="btn btn-secondary" id="adminNavBtn" type="button">관리자 모드</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- [화면 1] 영업가족 조회 화면 -->
+        <div id="userView" class="view-section active">
+            
+            <!-- 관리자 모드 업데이트 날짜 표시 배너 -->
+            <div class="update-banner" id="updateDateBanner">
+                <span>📅 데이터 기준일자 (최신 업데이트)</span>
+                <strong id="lastUpdateDateText" style="color: #2563eb;">미확인 (업데이트 필요)</strong>
+            </div>
+
+            <!-- 1. 레벨별 시상 안내 섹션 -->
+            <section class="box">
+                <h2 class="box-title">🎁 DB챌린지 레벨별 뱃지 기준 및 경품 안내</h2>
+                <p class="box-desc">달성한 뱃지 수량 및 전국 순위에 따라 시상 및 추첨 기회가 제공됩니다.</p>
+                
+                <div class="level-grid">
+                    <!-- 레벨 5 -->
+                    <div class="level-card" style="border-color: #f59e0b; background: #fffbeb;">
+                        <div>
+                            <span class="level-badge" style="background: #fef3c7; color: #d97706;">LEVEL 5</span>
+                            <div class="level-title">레벨 5</div>
+                            <div class="level-req">뱃지 70개 이상</div>
+                        </div>
+                        <div class="level-prize-box">
+                            <div class="level-img">🪙</div>
+                            <div>
+                                <div class="level-prize" style="color: #b45309;">금 1돈</div>
+                                <div class="level-quota">추첨인원: 1명</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 레벨 4 -->
+                    <div class="level-card">
+                        <div>
+                            <span class="level-badge">LEVEL 4</span>
+                            <div class="level-title">레벨 4</div>
+                            <div class="level-req">뱃지 60개 이상</div>
+                        </div>
+                        <div class="level-prize-box">
+                            <div class="level-img">🏅</div>
+                            <div>
+                                <div class="level-prize">금 반돈</div>
+                                <div class="level-quota">추첨인원: 4명</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 레벨 3 -->
+                    <div class="level-card">
+                        <div>
+                            <span class="level-badge">LEVEL 3</span>
+                            <div class="level-title">레벨 3</div>
+                            <div class="level-req">뱃지 50개 이상</div>
+                        </div>
+                        <div class="level-prize-box">
+                            <div class="level-img">🎖️</div>
+                            <div>
+                                <div class="level-prize">금 1g</div>
+                                <div class="level-quota">추첨인원: 5명</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 레벨 2 -->
+                    <div class="level-card">
+                        <div>
+                            <span class="level-badge">LEVEL 2</span>
+                            <div class="level-title">레벨 2</div>
+                            <div class="level-req">뱃지 40개 이상</div>
+                        </div>
+                        <div class="level-prize-box">
+                            <div class="level-img">🎫</div>
+                            <div>
+                                <div class="level-prize">포인트 5만원</div>
+                                <div class="level-quota">추첨인원: 100명</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 레벨 1 -->
+                    <div class="level-card">
+                        <div>
+                            <span class="level-badge">LEVEL 1</span>
+                            <div class="level-title">레벨 1</div>
+                            <div class="level-req">뱃지 30개 이상</div>
+                        </div>
+                        <div class="level-prize-box">
+                            <div class="level-img">🎟️</div>
+                            <div>
+                                <div class="level-prize">포인트 3만원</div>
+                                <div class="level-quota">추첨인원: 250명</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 전국 뱃지 순위별 지급 안내 카드 -->
+                    <div class="level-card" style="border-color: #2563eb; background: #eff6ff;">
+                        <div>
+                            <span class="level-badge" style="background: #dbeafe; color: #1e40af;">SPECIAL 시상</span>
+                            <div class="level-title" style="color: #1e3a8a;">전국 뱃지 순위별 지급</div>
+                            <div class="level-req" style="color: #2563eb; font-weight: bold;">추첨 외 별도 지급</div>
+                        </div>
+                        <div class="level-prize-box" style="background: #fff; border-color: #bfdbfe;">
+                            <div class="level-img">🏆</div>
+                            <div>
+                                <div class="level-prize" style="font-size: 13px; color: #1e3a8a; line-height: 1.4;">1위: 30만원<br>2~5위: 각 20만원<br>6~10위: 각 10만원</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. 17개 지역단 카드 현황 섹션 -->
+            <section class="box">
+                <h2 class="box-title">🏢 전국 17개 지역단 현황</h2>
+                <p class="box-desc">카드를 클릭하여 소속 인원의 상세 현황을 확인하세요.</p>
+                
+                <div class="region-card-grid" id="regionCardContainer">
+                    <!-- 동적 생성 -->
+                </div>
+            </section>
+
+            <!-- 3. TOP 30위 명단 순위표 섹션 -->
+            <section class="box">
+                <h2 class="box-title">🏆 전국 타겟DB 챌린지 TOP 30 순위</h2>
+                <p class="box-desc">실시간 집계된 전국 상위 30위 현황입니다.</p>
+                
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>순위</th>
+                                <th>지역단</th>
+                                <th>지점</th>
+                                <th>성명</th>
+                                <th>사번</th>
+                                <th class="text-right">뱃지</th>
+                            </tr>
+                        </thead>
+                        <tbody id="top30TableBody">
+                            <!-- 동적 생성 -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="expandBtnContainer" style="text-align: center; margin-top: 16px;">
+                    <button class="btn btn-secondary" id="toggleRankBtn" type="button" style="width: 100%;">▼ 전체 순위 더보기 (11위 ~ 30위)</button>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- [화면 2] 관리자 화면 -->
+        <div id="adminView" class="view-section">
+            <section class="box">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <div>
+                        <h2 class="box-title" style="margin-bottom: 2px;">⚙️ 관리자 데이터 관리</h2>
+                        <p class="box-desc" style="margin-bottom: 0;">CSV 파일을 업로드하여 데이터를 갱신합니다.</p>
+                    </div>
+                    <button class="btn btn-secondary" id="logoutAdminBtn" type="button">돌아가기</button>
+                </div>
+
+                <div style="background: #f8fafc; border: 1px dashed #cbd5e1; padding: 16px; border-radius: 8px; text-align: center; margin-bottom: 16px;">
+                    <p style="font-size: 15px; font-weight: bold; margin-bottom: 8px; color: #334155;">CSV 파일 덮어쓰기 업로드</p>
+                    <p style="font-size: 13px; color: #64748b; margin-bottom: 12px;">
+                        (순서: <strong>지역단, 지점, 성명, 사번, 뱃지 수량</strong>)
+                    </p>
+                    <input type="file" id="csvFileInput" accept=".csv" style="display: inline-block; margin-bottom: 12px; font-size: 14px;">
+                    <div>
+                        <button class="btn" id="uploadCsvBtn" type="button">업로드 및 저장</button>
+                    </div>
+                </div>
+
+                <h3 style="font-size: 16px; font-weight: bold; margin-bottom: 8px;">현재 등록된 데이터 미리보기</h3>
+                <div style="overflow-x: auto; max-height: 300px; overflow-y: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>지역단</th>
+                                <th>지점</th>
+                                <th>성명</th>
+                                <th>사번</th>
+                                <th class="text-right">뱃지</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminTableBody">
+                            <!-- 전체 데이터 목록 -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- 관리자 인증 모달 -->
+    <div id="passwordModal" class="modal">
+        <div class="modal-content" style="max-width: 380px;">
+            <div class="modal-header">
+                <span>관리자 인증</span>
+                <button class="close-btn" id="closeModalBtn" type="button">&times;</button>
+            </div>
+            <div class="form-group">
+                <label for="adminPassword">비밀번호를 입력하세요</label>
+                <input type="password" id="adminPassword" placeholder="비밀번호 입력">
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 6px; margin-top: 16px;">
+                <button class="btn btn-secondary" id="cancelModalBtn" type="button">취소</button>
+                <button class="btn" id="confirmPwdBtn" type="button">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 지역단 상세 정보 모달 -->
+    <div id="regionDetailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span id="modalRegionTitle">상세 현황</span>
+                <button class="close-btn" id="closeRegionModalBtn" type="button">&times;</button>
+            </div>
+            <div id="modalRegionBody">
+                <!-- 동적 상세 내용 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 푸터 -->
+    <footer>
+        <p>Copyright © DB Marketing Operations Team. All rights reserved.</p>
+    </footer>
+
+    <!-- 자바스크립트 로직 -->
+    <script>
+        const STORAGE_KEY = 'target_db_challenge_data_v10';
+        const DATE_KEY = 'target_db_challenge_update_date_v10';
+        let isRankExpanded = false;
+
+        const REGIONS_LIST = [
+            "강북", "강서", "강남", "북부", "경기", "성남", "경인", "강원", 
+            "중부", "충청", "전북", "부산", "경남", "영남", "대경", "제주"
+        ];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            renderDashboard();
+            renderUpdateDate();
+
+            document.getElementById('adminNavBtn').addEventListener('click', function() {
+                const modal = document.getElementById('passwordModal');
+                modal.style.display = 'flex';
+                document.getElementById('adminPassword').value = '';
+                document.getElementById('adminPassword').focus();
+            });
+
+            document.getElementById('closeModalBtn').addEventListener('click', closeAdminModal);
+            document.getElementById('cancelModalBtn').addEventListener('click', closeAdminModal);
+
+            function closeAdminModal() {
+                document.getElementById('passwordModal').style.display = 'none';
+            }
+
+            document.getElementById('closeRegionModalBtn').addEventListener('click', closeRegionModal);
+            function closeRegionModal() {
+                document.getElementById('regionDetailModal').style.display = 'none';
+            }
+
+            document.getElementById('confirmPwdBtn').addEventListener('click', checkPassword);
+            document.getElementById('adminPassword').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') checkPassword();
+            });
+
+            function checkPassword() {
+                const pwd = document.getElementById('adminPassword').value;
+                if (pwd === '3242') {
+                    closeAdminModal();
+                    document.getElementById('userView').classList.remove('active');
+                    document.getElementById('adminView').classList.add('active');
+                    document.getElementById('adminNavBtn').style.display = 'none';
+                    renderAdminTable();
+                } else {
+                    alert('비밀번호가 올바르지 않습니다.');
+                    document.getElementById('adminPassword').value = '';
+                    document.getElementById('adminPassword').focus();
+                }
+            }
+
+            document.getElementById('logoutAdminBtn').addEventListener('click', function() {
+                document.getElementById('adminView').classList.remove('active');
+                document.getElementById('userView').classList.add('active');
+                document.getElementById('adminNavBtn').style.display = 'inline-block';
+                renderDashboard();
+                renderUpdateDate();
+            });
+
+            document.getElementById('toggleRankBtn').addEventListener('click', function() {
+                isRankExpanded = !isRankExpanded;
+                renderTop30Table();
+            });
+
+            document.getElementById('uploadCsvBtn').addEventListener('click', function() {
+                const fileInput = document.getElementById('csvFileInput');
+                const file = fileInput.files[0];
+                
+                if (!file) {
+                    alert('업로드할 CSV 파일을 선택해주세요.');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const text = e.target.result;
+                    parseAndSaveCsvData(text, fileInput);
+                };
+                reader.readAsText(file, 'euc-kr');
+            });
+        });
+
+        function parseAndSaveCsvData(text, fileInput) {
+            const lines = text.split(/\r\n|\n/);
+            const parsedData = [];
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+
+                const cols = line.split(',').map(col => col.trim().replace(/^["']|["']$/g, ''));
+                
+                if (cols.length >= 5) {
+                    if (i === 0 && (cols[4].includes('뱃지') || isNaN(Number(cols[4])))) {
+                        continue;
+                    }
+                    parsedData.push({
+                        region: cols[0],
+                        branch: cols[1],
+                        name: cols[2],
+                        empNo: cols[3],
+                        badges: Number(cols[4]) || 0
+                    });
+                }
+            }
+
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(parsedData));
+            
+            const now = new Date();
+            const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            localStorage.setItem(DATE_KEY, dateStr);
+
+            alert(`총 ${parsedData.length}명의 데이터가 성공적으로 업로드 및 갱신되었습니다.`);
+            fileInput.value = '';
+            renderAdminTable();
+            renderUpdateDate();
+        }
+
+        function getStoredData() {
+            const dataStr = localStorage.getItem(STORAGE_KEY);
+            if (!dataStr) return [];
+            try { return JSON.parse(dataStr); } catch (e) { return []; }
+        }
+
+        function renderUpdateDate() {
+            const dateStr = localStorage.getItem(DATE_KEY);
+            const textElem = document.getElementById('lastUpdateDateText');
+            if (dateStr) {
+                textElem.innerText = dateStr;
+            } else {
+                textElem.innerText = '정보 없음 (업로드 필요)';
+            }
+        }
+
+        function renderDashboard() {
+            renderTop30Table();
+            renderRegionCards();
+        }
+
+        function renderTop30Table() {
+            const data = getStoredData();
+            data.sort((a, b) => b.badges - a.badges);
+            const top30 = data.slice(0, 30);
+            const tbody = document.getElementById('top30TableBody');
+            const toggleBtn = document.getElementById('toggleRankBtn');
+            tbody.innerHTML = '';
+
+            if (top30.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="no-data">등록된 데이터가 없습니다. 관리자 모드에서 CSV 파일을 업로드해주세요.</td></tr>`;
+                toggleBtn.style.display = 'none';
+                return;
+            }
+
+            toggleBtn.style.display = 'block';
+            toggleBtn.innerHTML = isRankExpanded ? '▲ 접기 (1위 ~ 10위만 보기)' : '▼ 전체 순위 더보기 (11위 ~ 30위)';
+
+            top30.forEach((item, index) => {
+                if (index >= 10 && !isRankExpanded) {
+                    return;
+                }
+
+                let rankBadge = `${index + 1}위`;
+                if (index === 0) rankBadge = '🥇 1위';
+                else if (index === 1) rankBadge = '🥈 2위';
+                else if (index === 2) rankBadge = '🥉 3위';
+
+                let groupClass = 'group-1st';
+                if (index >= 10 && index < 20) groupClass = 'group-2nd';
+                else if (index >= 20) groupClass = 'group-3rd';
+
+                const row = document.createElement('tr');
+                row.className = groupClass;
+                row.innerHTML = `
+                    <td style="font-weight: bold; color: ${index < 3 ? '#d97706' : '#475569'};">${rankBadge}</td>
+                    <td>${item.region}</td>
+                    <td>${item.branch}</td>
+                    <td><strong>${item.name}</strong></td>
+                    <td>${item.empNo}</td>
+                    <td class="text-right" style="font-weight: bold; color: #2563eb;">${item.badges}개</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function renderRegionCards() {
+            const data = getStoredData();
+            data.sort((a, b) => b.badges - a.badges);
+            
+            const cardContainer = document.getElementById('regionCardContainer');
+            cardContainer.innerHTML = '';
+
+            REGIONS_LIST.forEach(regionName => {
+                const card = document.createElement('div');
+                card.className = 'region-card';
+                card.onclick = function() {
+                    openRegionDetailModal(regionName, data);
+                };
+                card.innerHTML = `
+                    <div class="region-card-name">${regionName}</div>
+                `;
+                cardContainer.appendChild(card);
+            });
+        }
+
+        function openRegionDetailModal(regionName, allData) {
+            document.getElementById('modalRegionTitle').innerText = `${regionName} 상세 현황`;
+            const modalBody = document.getElementById('modalRegionBody');
+            
+            const regionAllMembers = allData.filter(item => item.region === regionName);
+
+            let l1 = 0, l2 = 0, l3 = 0, l4 = 0, l5 = 0;
+            regionAllMembers.forEach(m => {
+                if (m.badges >= 70) l5++;
+                else if (m.badges >= 60) l4++;
+                else if (m.badges >= 50) l3++;
+                else if (m.badges >= 40) l2++;
+                else if (m.badges >= 30) l1++;
+            });
+
+            const top30 = allData.slice(0, 30);
+            const regionTop30 = [];
+            top30.forEach((item, index) => {
+                if (item.region === regionName) {
+                    regionTop30.push({ ...item, rank: index + 1 });
+                }
+            });
+
+            const g1_10 = regionTop30.filter(x => x.rank <= 10);
+            const g11_20 = regionTop30.filter(x => x.rank > 10 && x.rank <= 20);
+            const g21_30 = regionTop30.filter(x => x.rank > 20 && x.rank <= 30);
+
+            let html = `
+                <h3 style="font-size: 15px; font-weight: bold; margin-bottom: 8px; color: #1e3a8a;">🛡️ 소속 레벨별 달성 현황</h3>
+                <div style="margin-bottom: 16px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; text-align: center;">
+                    <div style="background: #f8fafc; padding: 8px 4px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                        <div style="font-size: 12px; color: #64748b;">Lv.1</div>
+                        <div style="font-size: 15px; font-weight: bold; color: #4f46e5;">${l1}</div>
+                    </div>
+                    <div style="background: #f8fafc; padding: 8px 4px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                        <div style="font-size: 12px; color: #64748b;">Lv.2</div>
+                        <div style="font-size: 15px; font-weight: bold; color: #4f46e5;">${l2}</div>
+                    </div>
+                    <div style="background: #f8fafc; padding: 8px 4px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                        <div style="font-size: 12px; color: #64748b;">Lv.3</div>
+                        <div style="font-size: 15px; font-weight: bold; color: #4f46e5;">${l3}</div>
+                    </div>
+                    <div style="background: #f8fafc; padding: 8px 4px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                        <div style="font-size: 12px; color: #64748b;">Lv.4</div>
+                        <div style="font-size: 15px; font-weight: bold; color: #4f46e5;">${l4}</div>
+                    </div>
+                    <div style="background: #f8fafc; padding: 8px 4px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                        <div style="font-size: 12px; color: #64748b;">Lv.5</div>
+                        <div style="font-size: 15px; font-weight: bold; color: #d97706;">${l5}</div>
+                    </div>
+                </div>
+
+                <h3 style="font-size: 15px; font-weight: bold; margin-bottom: 8px; color: #1e3a8a;">🏆 TOP 30 구간별 진입 인원</h3>
+                <div style="margin-bottom: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center;">
+                    <div style="background: #f8fafc; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                        <div style="font-size: 13px; color: #64748b;">1~10위</div>
+                        <div style="font-size: 16px; font-weight: bold; color: #2563eb;">${g1_10.length}명</div>
+                    </div>
+                    <div style="background: #f8fafc; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                        <div style="font-size: 13px; color: #64748b;">11~20위</div>
+                        <div style="font-size: 16px; font-weight: bold; color: #2563eb;">${g11_20.length}명</div>
+                    </div>
+                    <div style="background: #f8fafc; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                        <div style="font-size: 13px; color: #64748b;">21~30위</div>
+                        <div style="font-size: 16px; font-weight: bold; color: #2563eb;">${g21_30.length}명</div>
+                    </div>
+                </div>
+
+                <h3 style="font-size: 15px; font-weight: bold; margin-bottom: 8px; color: #1e3a8a;">📋 TOP 30 진입자 상세 명단</h3>
+            `;
+
+            if (regionTop30.length === 0) {
+                html += `<p style="text-align: center; color: #94a3b8; padding: 16px; font-size: 14px;">TOP 30 진입 인원이 없습니다.</p>`;
+            } else {
+                html += `
+                    <div style="max-height: 220px; overflow-y: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>순위</th>
+                                    <th>지점</th>
+                                    <th>성명</th>
+                                    <th class="text-right">뱃지</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                regionTop30.forEach(item => {
+                    html += `
+                        <tr>
+                            <td><strong>${item.rank}위</strong></td>
+                            <td>${item.branch}</td>
+                            <td><strong>${item.name}</strong></td>
+                            <td class="text-right" style="color: #2563eb; font-weight: bold;">${item.badges}개</td>
+                        </tr>
+                    `;
+                });
+                html += `</tbody></table></div>`;
+            }
+
+            modalBody.innerHTML = html;
+            document.getElementById('regionDetailModal').style.display = 'flex';
+        }
+
+        function renderAdminTable() {
+            const data = getStoredData();
+            data.sort((a, b) => b.badges - a.badges);
+            const tbody = document.getElementById('adminTableBody');
+            tbody.innerHTML = '';
+
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="no-data">업로드된 데이터가 없습니다.</td></tr>`;
+                return;
+            }
+
+            data.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.region}</td>
+                    <td>${item.branch}</td>
+                    <td><strong>${item.name}</strong></td>
+                    <td>${item.empNo}</td>
+                    <td class="text-right" style="font-weight: bold;">${item.badges}개</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+    </script>
+</body>
+</html>
